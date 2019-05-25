@@ -1,26 +1,50 @@
 import React, {Component} from 'react'; 
-import {notification,Input} from 'antd';
+import {notification,Input, Statistic, Button} from 'antd';
 import Header from "./Header"
 import Silde from "./Silde"
 import Chat from "./ChatWindow"
 import '../css/Header.css'
-import {Row, Col, Modal, Button} from 'react-bootstrap'
+import {Modal, Row, Col, Image} from 'react-bootstrap'
 
 class App extends Component {
+
+  websocket = null;
 
   constructor(props, context) {
     super(props, context);
     this.state = {
       show: true,
-      nickName: "匿名用户"
+      nickName: "匿名用户",
+      icon: '',
+      selected:false,
+      websocket:null,
     };
 
     this.handleClose = this.handleClose.bind(this);
   }
 
   componentDidMount() { 
-
+    //  // 消息推送
+    //  this.websocket2 = new WebSocket('ws://localhost:8080/new'); 
+    //  this.setState({
+    //    socket2: this.websocket2
+    //  })
+    //  this.websocket2.onopen = function(evt) { 
+    //      console.log('openNew')
+    //  }; 
+    //  this.websocket2.onclose = function(evt) { 
+    //      console.log('closeNew')
+    //  }; 
+    //  //todo impl
+    //  this.websocket2.onmessage = function(evt) { 
+    //      console.log(evt.data)
+    //  }; 
+    //  this.websocket2.onerror = function(evt) { 
+    //      //onError(evt) 
+    //      console.log(evt)
+    //  }; 
   }
+
 
   handleClose() {
     this.setState({ show: false});
@@ -34,6 +58,16 @@ class App extends Component {
         console.log('Notification Clicked!');
       },
     });
+
+    
+    //   //将object转成json字符串发送给服务端
+    // var msg = {
+    //     name: this.props.nickName,
+    //     isCount: false,
+    //     isMsg: false
+    // }
+    // var json = JSON.stringify(msg);
+    // this.state.websocket.send(json)
   }
 
   setName =(event) => {
@@ -41,6 +75,43 @@ class App extends Component {
       nickName: event.target.value
     })
   }
+
+ selectImage =(number, event)=> {
+   if (number == 1) {
+    this.setState({
+      icon: 'anno1',
+      selected:'第一个',
+    })
+    console.log(1)
+   }
+
+   if (number == 2) {
+    this.setState({
+      icon: 'anno2',
+      selected:'第二个',
+    
+    })
+    console.log(2)
+   }
+
+   if (number == 3) {
+    this.setState({
+      icon: 'anno3',
+      selected:'第三个',
+    
+    })
+    console.log(3)
+   }
+
+   if (number == 4) {
+    this.setState({
+      icon: 'anno4',
+      selected:'第四个',
+
+    })
+    console.log(4)
+   }
+ }
 
   render() {
     return(
@@ -51,7 +122,23 @@ class App extends Component {
             </Modal.Header>
             <Modal.Body>请输入您的昵称:
               <br/>
-              <Input onChange={this.setName} defaultValue={this.state.nickName}/>
+              <br/>
+              <Input onChange={this.setName} defaultValue={this.state.nickName} nameChange={this.state.nameChange}/>
+              <br/>
+              <br/>
+              <br/>
+              请选择头像:   当前选择({this.state.selected})<br/>  
+              <br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+             
+              <Image src={require('../assets/anno1.jpeg')} style={{height:100}} onClick={this.selectImage.bind(this,1)}/>
+              &nbsp;&nbsp;
+              <Image src={require('../assets/anno2.jpeg')} style={{height:100}} onClick={this.selectImage.bind(this,2)}/>
+              &nbsp;&nbsp;
+              <Image src={require('../assets/anno3.jpeg')} style={{height:100}} onClick={this.selectImage.bind(this,3)}/>
+              &nbsp;&nbsp;
+              <Image src={require('../assets/anno4.jpeg')} style={{height:100}} onClick={this.selectImage.bind(this,4)}/>
+              <br/>
             </Modal.Body>
             <Modal.Footer>
               <Button variant="secondary" onClick={this.handleClose}>
@@ -89,7 +176,7 @@ class App extends Component {
               </div>
             </Col>
             <Col xs={12} md={6}>
-                <Chat nickName= {this.state.nickName}></Chat>
+                <Chat nickName= {this.state.nickName} iconPath={this.state.icon}></Chat>
             </Col>
           </Row>
         </div>

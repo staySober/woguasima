@@ -1,34 +1,98 @@
 import React, { Component } from "react";
 import Chat from 'chat-react';
-import socketIOClient  from 'socket.io-client';
+import { Modal } from 'react-bootstrap';
+import { Statistic,message } from 'antd'
 
 class ChatWindow extends Component {
 
-    
-    socket = null
-
     constructor(props) {
         super(props)
-        
         this.state = {
-            ws:null,
-            UID:"",
-            endpoint:"http://localhost:3000/ws"
+            ws: null,
+            UID: '',
+            showUserInfo: false,
+            messages: [{
+                timestamp: 1545925534218,
+                userInfo: {
+                    avatar: require('../assets/soberhead.png'),
+                    name: "系统提示",
+                    userId: "123456"
+                },
+                value: "😀欢迎来到倭瓜司马聊天室, 请大家尽情吐槽~ 可匿名也可实名哦~",
+                error: true //设置消息状态为失败，显示错误状态图标
+            }],
+            showUserName: '',
+            avtivePerson: 1,
+            init:false,
+            showNewLogin:false
         }
-
-        this.socket = socketIOClient(this.state.endpoint);
-        this.socket.on('connect', () => {
-            console.log(this.socket.connected); // true
-          });
     }
 
-    
+    newPersonFlag = true
     // webSocket
-    componentDidMount() { 
-         // uid
-         this.setState({
+    componentDidMount() {
+        // 消息推送
+        this.websocket = new WebSocket('ws://localhost:8080/msg');
+        this.websocket.onopen = function (evt) {
+            console.log('open')
+        };
+        this.websocket.onclose = function (evt) {
+            console.log('close')
+        };
+        var _this = this;
+        //todo impl
+        this.websocket.onmessage = function (evt) {
+            console.log(evt)
+            var msg = JSON.parse(evt.data)
+
+            // 信息
+            if (msg.isMsg) {
+                const { messages = [] } = _this.state;
+                if (msg.userInfo.userId === _this.state.UID) {
+                    return
+                }
+                messages.push(msg);
+                _this.setState({ messages, timestamp: new Date().getTime(), inputValue: '' });
+            }
+            //人数
+            if (msg.isCount) {
+                var count = msg.count
+                _this.setState({
+                    activePerson: count
+                });
+            }
+
+            if(!msg.isCount && !msg.isMsg && _this.state.init) {
+              //this.props.getWs.getWs.bind(this, this.websocket)
+              message.success(msg.name + " 刚刚加入了群聊~ ",5);  
+              _this.setState({
+                showNewLogin:true
+              }) 
+            }
+
+            if(_this.state.init && _this.newPersonFlag) {
+                console.log(123)
+                //将object转成json字符串发送给服务端
+                var msg = {
+                    name: _this.props.nickName,
+                    isCount: false,
+                    isMsg: false
+                }
+                var json = JSON.stringify(msg);
+                _this.websocket.send(json)
+                _this.newPersonFlag = false;
+            }
+        };
+        this.websocket.onerror = function (evt) {
+            //onError(evt) 
+            console.log(evt)
+        };
+
+        // uid
+        this.setState({
             UID: this.uuid(),
-            ws: this.ws
+            socket: this.websocket,
+            init:true
         })
     }
 
@@ -44,24 +108,60 @@ class ChatWindow extends Component {
         const { value } = v;
         if (!value) return;
         const { messages = [] } = this.state;
+        // icon reset true path
+
+        if (v.userInfo.avatar === 'anno1') {
+            v.userInfo.avatar = require('../assets/anno1.jpeg')
+        }
+        if (v.userInfo.avatar === 'anno2') {
+            v.userInfo.avatar = require('../assets/anno2.jpeg')
+        }
+        if (v.userInfo.avatar === 'anno3') {
+            v.userInfo.avatar = require('../assets/anno3.jpeg')
+        }
+        if (v.userInfo.avatar === 'anno4') {
+            v.userInfo.avatar = require('../assets/anno4.jpeg')
+        }
         messages.push(v);
         this.setState({ messages, timestamp: new Date().getTime(), inputValue: '' });
-        
+
+        // socket
         var msg = {
-            timestamp: 1545925494422,
-                userInfo: {
-                    avatar: "http://img.binlive.cn/1.png",
-                    name: this.props.nickName,
-                    userId: this.state.UID
-                },
-                value: value
+            timestamp: new Date().getTime(),
+            userInfo: {
+                avatar: this.props.iconPath === 'anno1' ? require('../assets/anno1.jpeg')
+                    : (this.props.iconPath === 'anno2' ? require('../assets/anno2.jpeg') :
+                        (this.props.iconPath === 'anno3' ? require('../assets/anno3.jpeg') : require('../assets/anno4.jpeg'))),
+                name: this.props.nickName,
+                userId: this.state.UID
+            },
+            value: value,
+            isMsg: true,
+            isCount: false
         }
 
         //将object转成json字符串发送给服务端
-         var json = JSON.stringify(msg);
-        // socket推送
-        this.socket.emit('msg', json);
-        console.log("send")
+        var json = JSON.stringify(msg);
+        this.websocket.send(json)
+    }
+
+    showUserInfo = (e) => {
+        //console.log(this.returnCitySN["cip"]+','+this.returnCitySN["cname"])  
+        this.setState({
+            showUserInfo: true,
+            showUserName: e.name,
+        })
+        var _this = this;
+        setTimeout(function () {
+            _this.setState({
+                showUserInfo: false,
+                showUserName: ""
+            })
+        }, 2000)
+    }
+
+    handleClose = (e) => {
+        this.setState({ showUserInfo: false });
     }
 
     uuid() {
@@ -80,25 +180,43 @@ class ChatWindow extends Component {
         return uuid;
     }
 
+
+
     render() {
         const { inputValue, messages, timestamp } = this.state;
         const userInfo = {
-            avatar: "http://img.binlive.cn/6.png",
+            avatar: this.props.iconPath,
             userId: this.state.UID,
             name: this.props.nickName
         };
-        return (   
+
+        return (
+
+            <div>
+                <div className="static-modal">
+                    <Modal show={this.state.showUserInfo} onHide={this.handleClose}>
+                        <Modal.Header closeButton>
+                            <Modal.Title>用户信息</Modal.Title>
+                        </Modal.Header>
+                        <Modal.Body>用户名: {this.state.showUserName}
+                            {this.state.IP}
+                        </Modal.Body>
+                    </Modal>
+                </div>
+                <Statistic title="当前在线人数: " value={this.state.activePerson} />
                 <Chat
-                ref={el => this.chat = el}
-                className="my-chat-box"
-                dataSource={messages}
-                userInfo={userInfo}
-                value={inputValue}
-                sendMessage={this.sendMessage}
-                timestamp={timestamp}
-                placeholder="请输入"
-                messageListStyle={{ width: '100%', height: window.outerHeight}}
-            />
+                    ref={el => this.chat = el}
+                    className="my-chat-box"
+                    dataSource={messages}
+                    userInfo={userInfo}
+                    value={inputValue}
+                    sendMessage={this.sendMessage}
+                    timestamp={timestamp}
+                    placeholder="请输入"
+                    avatarClick={this.showUserInfo}
+                    messageListStyle={{ width: '100%', height: window.outerHeight }}
+                />
+            </div>
 
         );
     }

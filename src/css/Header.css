@@ -19,3 +19,8 @@
 .Col {
     background-color: black;
 }
+
+.border_1 {
+    border: 10px;
+    border-color: deeppink
+}
